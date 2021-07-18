@@ -1,0 +1,2 @@
+let () =
+  Lib.Game.go ()
