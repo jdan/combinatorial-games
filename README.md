@@ -4,6 +4,8 @@ An exploration of evaluating the results of [games without chance](https://en.wi
 
 [game.ml](/lib/game.ml) contains all the code.
 
+Inspired by [Jordan Ellenberg's novel, Shape](https://amzn.to/3yKptm0) (Chapter 5: _"His Style Was Invincibility"_)
+
 ### example
 
 ```ocaml
