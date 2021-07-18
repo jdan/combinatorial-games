@@ -1,2 +1,2 @@
 let () =
-  Lib.Game.go ()
+  print_endline "TODO: put a game here maybe"
