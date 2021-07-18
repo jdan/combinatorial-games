@@ -177,9 +177,9 @@ let%test_module _ = (module struct
                                         Empty, Empty, Empty) 
                              }
 
-  (* O top-left is a mistake! *)
+  (* O top-right is a mistake! *)
   let%test _ = Win = M.eval { xs_turn = true; 
-                              board = (X, Empty, O, 
+                              board = (X, Empty, O,
                                        Empty, Empty, Empty,
                                        Empty, Empty, Empty)
                             }
