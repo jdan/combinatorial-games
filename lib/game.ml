@@ -6,7 +6,7 @@ module type CombinatorialGame = sig
   type game_state
 
   val next_states : game_state -> game_state list
-  val is_loss : game_state -> bool
+  val immediate_result : game_state -> result option
 end
 
 module CombinatorialGameEvaluator (G : CombinatorialGame) = struct
@@ -14,9 +14,9 @@ module CombinatorialGameEvaluator (G : CombinatorialGame) = struct
 
   (* todo: memoize *)
   let rec eval state =
-    if is_loss state
-    then Lose
-    else
+    match immediate_result state with
+    | Some result -> result
+    | None ->
       let eval_next = next_states state |> List.map eval in
       (* SHAPE: Page 126 *)
       (* If every move I make leads to a W, my current position is an L. *)
@@ -32,7 +32,7 @@ module SinglePileNim = struct
   type game_state = int
 
   let next_states pile = range 0 (pile - 1)
-  let is_loss = (=) 0
+  let immediate_result state = if state = 0 then Some Lose else None
 end
 
 module SinglePileNimEvaluator = CombinatorialGameEvaluator(SinglePileNim)
@@ -56,6 +56,10 @@ module MultiPileNim = struct
   let%test _ = [[0; 2]; [1; 2]; [2; 0]; [2; 1]] = next_states [2; 2]
 
   let is_loss = all (fun n -> n = 0)
+  let immediate_result piles =
+    if all (fun n -> n = 0) piles
+    then Some Lose
+    else None
 end
 
 module MultiPileNimEvaluator = CombinatorialGameEvaluator(MultiPileNim)
@@ -70,7 +74,7 @@ module FlagPick = struct
     if n < 4
     then range 0 (n - 1)
     else [n - 1; n - 2; n - 3]
-  let is_loss = (=) 0
+  let immediate_result state = if state = 0 then Some Lose else None
 end
 
 module FlagPickEvaluator = CombinatorialGameEvaluator(FlagPick)
