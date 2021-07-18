@@ -1,8 +1,6 @@
 ## combinatorial-games
 
-An exploration of evaluating the results of [games without chance](https://en.wikipedia.org/wiki/Combinatorial_game_theory) under perfect play.
-
-[game.ml](/lib/game.ml) contains all the code.
+An exploration of evaluating the results of [games without chance](https://en.wikipedia.org/wiki/Combinatorial_game_theory) under perfect play. [game.ml](/lib/game.ml) contains all the code.
 
 Inspired by [Jordan Ellenberg's novel, Shape](https://amzn.to/3yKptm0) (Chapter 5: _"His Style Was Invincibility"_)
 
