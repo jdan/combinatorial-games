@@ -27,6 +27,21 @@ module CombinatorialGameEvaluator (Game : CombinatorialGame) = struct
       (* Third Rule: If no move I can make leads to an L, but not
          every move I make leads to a W, my current position is a D. *)
       else Draw
+
+  let best_move state =
+    (* A WIN means your move makes your opponent LOSE, so we
+       flip the result when displaying the best move's state *)
+    let flip_result = function
+      | Lose -> Win
+      | Win -> Lose
+      | Draw -> Draw
+    in let eval_next =
+         Game.next_states state
+         |> List.map (fun st -> (st, eval st |> flip_result))
+    in
+    first (fun (_, res) -> res = Win) eval_next
+    ||* first (fun (_, res) -> res = Draw) eval_next
+    ||* first (fun (_, res) -> res = Lose) eval_next
 end
 
 module SinglePileNim = struct
@@ -42,10 +57,10 @@ end
 
 let%test_module _ = (module struct
   module M = CombinatorialGameEvaluator(SinglePileNim)
-  let%test _ = Win = M.eval 5
-  let%test _ = Win = M.eval 4
-  let%test _ = Win = M.eval 1
-  let%test _ = Lose = M.eval 0
+  let%test "Take all 5" = Win = M.eval 5
+  let%test "Take all 4" = Win = M.eval 4
+  let%test "Take the remaining stone" = Win = M.eval 1
+  let%test "You lose" = Lose = M.eval 0
 end)
 
 module MultiPileNim = struct
@@ -70,9 +85,11 @@ end
 
 let%test_module _ = (module struct
   module M = CombinatorialGameEvaluator(MultiPileNim)
-  let%test _ = Win = M.eval [5]
-  let%test _ = Lose = M.eval [2; 2]
-  let%test _ = Win = M.eval [2; 3]
+  let%test "Take all stones in the pile" = Win = M.eval [5]
+  let%test "Leave the piles as 2, 2" = Win = M.eval [2; 3]
+  let%test "Your opponent can force your loss by mimicking" = Lose = M.eval [2; 2]
+
+  let%test "Leave the piles as 2, 2" = Some ([2; 2], Win) = M.best_move [2; 3]
 end)
 
 module FlagPick = struct
@@ -96,9 +113,9 @@ let%test_module _ = (module struct
   let%test _ = Win = M.eval 2
   let%test _ = Win = M.eval 1
 
-  let%test _ = Lose = M.eval 0
-  let%test _ = Lose = M.eval 4
-  let%test _ = Lose = M.eval 8
+  let%test "No flags left is a loss" = Lose = M.eval 0
+  let%test "Four flags allows your opponent to force a loss" = Lose = M.eval 4
+  let%test "Any multiple of four flags is a loss" = Lose = M.eval 8
 end)
 
 module TicTacToe = struct
@@ -163,50 +180,67 @@ end
 let%test_module _ = (module struct
   module M = CombinatorialGameEvaluator(TicTacToe)
 
-  (* An empty board is a Draw *)
-  let%test _ = Draw = M.eval { xs_turn = true; 
-                               board = (Empty, Empty, Empty, 
-                                        Empty, Empty, Empty,
-                                        Empty, Empty, Empty) 
-                             }
+  let%test "An empty board is a Draw" =
+    Draw = M.eval { xs_turn = true;
+                    board = (Empty, Empty, Empty,
+                             Empty, Empty, Empty,
+                             Empty, Empty, Empty)
+                  }
 
-  (* In fact, after X plays the top left it's still a draw *)
-  let%test _ = Draw = M.eval { xs_turn = false; 
-                               board = (X, Empty, Empty, 
-                                        Empty, Empty, Empty, 
-                                        Empty, Empty, Empty) 
-                             }
+  let%test "O can force a draw even if X plays correctly" =
+    Draw = M.eval { xs_turn = false;
+                    board = (X, Empty, Empty,
+                             Empty, Empty, Empty,
+                             Empty, Empty, Empty)
+                  }
 
-  (* O top-right is a mistake! *)
-  let%test _ = Win = M.eval { xs_turn = true; 
-                              board = (X, Empty, O,
-                                       Empty, Empty, Empty,
-                                       Empty, Empty, Empty)
-                            }
-  (* As-is top-middle *)
-  let%test _ = Win = M.eval { xs_turn = true;
-                              board = (X, O, Empty,
-                                       Empty, Empty, Empty,
-                                       Empty, Empty, Empty)
-                            }
-  (* ... and any corner... *)
-  let%test _ = Win = M.eval { xs_turn = true;
-                              board = (X, Empty, Empty,
-                                       Empty, Empty, Empty,
-                                       Empty, Empty, O)
-                            }
+  let%test "O playing top-right is a fatal error" =
+    Win = M.eval { xs_turn = true;
+                   board = (X, Empty, O,
+                            Empty, Empty, Empty,
+                            Empty, Empty, Empty)
+                 }
 
-  (* O _must_ play in the center to prevent a win *)
-  let%test _ = Draw = M.eval { xs_turn = true;
-                               board = (X, Empty, Empty,
-                                        Empty, O, Empty,
-                                        Empty, Empty, Empty)
-                             }
+  let%test "O playing center edge loses" =
+    Win = M.eval { xs_turn = true;
+                   board = (X, O, Empty,
+                            Empty, Empty, Empty,
+                            Empty, Empty, Empty)
+                 }
 
-  (* O can, of course, turn it around if X plays poorly *)
-  let%test _ = Win = M.eval { xs_turn = false;
-                              board = (X, Empty, Empty,
-                                       O, O, Empty,
-                                       X, Empty, X)
-                            }
+  let%test "O playing any corner loses" =
+    Win = M.eval { xs_turn = true;
+                   board = (X, Empty, Empty,
+                            Empty, Empty, Empty,
+                            Empty, Empty, O)
+                 }
+
+  let%test "O _must_ play in the center to prevent a win" =
+    Draw = M.eval { xs_turn = true;
+                    board = (X, Empty, Empty,
+                             Empty, O, Empty,
+                             Empty, Empty, Empty)
+                  }
+
+  let%test "O can, of course, turn it around if X plays poorly" =
+    Win = M.eval { xs_turn = false;
+                   board = (X, Empty, Empty,
+                            O, O, Empty,
+                            X, Empty, X)
+                 }
+
+  let%test "The best move for O is to play in the center" =
+    Some ( { TicTacToe.xs_turn = true
+           ; board = (X, Empty, Empty,
+                      Empty, O, Empty,
+                      Empty, Empty, Empty)
+           }
+         , Draw
+         ) =
+    M.best_move
+      { xs_turn = false
+      ; board = (X, Empty, Empty,
+                 Empty, Empty, Empty,
+                 Empty, Empty, Empty)
+      }
 end)

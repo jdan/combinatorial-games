@@ -10,6 +10,18 @@ let rec any pred = function
   | [] -> false
   | x :: rest -> if pred x then true else any pred rest
 
+let rec first pred = function
+  | [] -> None
+  | x :: rest ->
+    if pred x
+    then Some x
+    else first pred rest
+
 let rec update idx v = function
   | [] -> []
   | x::xs -> if idx = 0 then (v :: xs) else x :: update (idx - 1) v xs
+
+let (||*) a b =
+  if Option.is_some a
+  then a
+  else b
