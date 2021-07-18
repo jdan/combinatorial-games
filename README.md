@@ -12,26 +12,26 @@ Inspired by [Jordan Ellenberg's novel, Shape](https://amzn.to/3yKptm0) (Chapter 
 let%test_module _ = (module struct
   module M = CombinatorialGameEvaluator(TicTacToe)
 
-  (* An empty board is a Draw *)
-  let%test _ = Draw = M.eval { xs_turn = true;
-                               board = (Empty, Empty, Empty,
-                                        Empty, Empty, Empty,
-                                        Empty, Empty, Empty)
-                             }
+  let%test "An empty board is a Draw" =
+    Draw = M.eval { xs_turn = true;
+                    board = (Empty, Empty, Empty,
+                             Empty, Empty, Empty,
+                             Empty, Empty, Empty)
+                  }
 
-  (* In fact, after X plays the top left it's still a draw *)
-  let%test _ = Draw = M.eval { xs_turn = false;
-                               board = (X, Empty, Empty,
-                                        Empty, Empty, Empty,
-                                        Empty, Empty, Empty)
-                             }
+  let%test "O can force a draw even if X plays correctly" =
+    Draw = M.eval { xs_turn = false;
+                    board = (X, Empty, Empty,
+                             Empty, Empty, Empty,
+                             Empty, Empty, Empty)
+                  }
 
-  (* O top-right is a mistake! *)
-  let%test _ = Win = M.eval { xs_turn = true;
-                              board = (X, Empty, O,
-                                       Empty, Empty, Empty,
-                                       Empty, Empty, Empty)
-                            }
+  let%test "O playing top-right is a fatal error" =
+    Win = M.eval { xs_turn = true;
+                   board = (X, Empty, O,
+                            Empty, Empty, Empty,
+                            Empty, Empty, Empty)
+                 }
 end)
 ```
 
