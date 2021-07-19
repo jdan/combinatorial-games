@@ -9,8 +9,7 @@ module type CombinatorialGame = sig
 end
 
 module CombinatorialGameEvaluator (Game : CombinatorialGame) = struct
-  (* todo: memoize *)
-  let rec eval state =
+  let eval_no_rec eval state =
     match Game.immediate_result state with
     | Some result -> result
     | None ->
@@ -27,6 +26,8 @@ module CombinatorialGameEvaluator (Game : CombinatorialGame) = struct
       (* Third Rule: If no move I can make leads to an L, but not
          every move I make leads to a W, my current position is a D. *)
       else Draw
+  let eval = memo_rec eval_no_rec
+
 
   let best_move state =
     (* A WIN means your move makes your opponent LOSE, so we
@@ -312,8 +313,10 @@ module HareAndHounds = struct
         Hound, Hare, Hound) -> true
     | _ -> false
 
+  let vertical_move_limit = 10
+
   let immediate_result { hounds_turn; board; vertical_move_streak } =
-    if vertical_move_streak >= 10
+    if vertical_move_streak >= vertical_move_limit
     then Some (if hounds_turn then Lose else Win)
     else if hare_reached_goal board
     then Some (if hounds_turn then Lose else Win)
@@ -442,11 +445,11 @@ let%test_module "HareAndHounds" = (module struct
                  ; vertical_move_streak = 20
                  }
 
-  let%test "The starting board is a draw" =
-    Draw = M.eval { hounds_turn = true
-                  ; board = (Hound, Empty, Empty,
-                             Hound, Empty, Empty , Empty, Hare,
-                             Hound, Empty, Empty)
-                  ; vertical_move_streak = 0
-                  }
+  let%test "The starting board is a win for the hounds" =
+    Win = M.eval { hounds_turn = true
+                 ; board = (Hound, Empty, Empty,
+                            Hound, Empty, Empty , Empty, Hare,
+                            Hound, Empty, Empty)
+                 ; vertical_move_streak = 0
+                 }
 end)

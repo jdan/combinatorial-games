@@ -43,3 +43,22 @@ let (||*) a b =
   if Option.is_some a
   then a
   else b
+
+(* https://dev.realworldocaml.org/imperative-programming.html *)
+let memoize f =
+  let memo_table = Hashtbl.create 24 in
+  fun x ->
+    match Hashtbl.find_opt memo_table x with
+    | None ->
+      let result = f x
+      in
+      Hashtbl.add memo_table x result;
+      result
+    | Some v ->
+      v
+
+let memo_rec f_norec x =
+  let fref = ref (fun _ -> assert false) in
+  let f = memoize (fun x -> f_norec !fref x) in
+  fref := f;
+  f x
