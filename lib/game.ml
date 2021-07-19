@@ -4,6 +4,7 @@ type result = Win | Lose | Draw
 
 module type CombinatorialGame = sig
   type game_state
+  val string_of_game_state : game_state -> string
   val next_states : game_state -> game_state list
   val immediate_result : game_state -> result option
 end
@@ -43,10 +44,21 @@ module CombinatorialGameEvaluator (Game : CombinatorialGame) = struct
     first (fun (_, res) -> res = Win) eval_next
     ||* first (fun (_, res) -> res = Draw) eval_next
     ||* first (fun (_, res) -> res = Lose) eval_next
+
+  exception BestMoveNotFoundException
+  let rec ideal_play state =
+    match Game.immediate_result state with
+    | Some _ -> [state]
+    | None -> (
+        match best_move state with
+        | None -> raise BestMoveNotFoundException
+        | Some (move, _) -> move :: ideal_play move
+      )
 end
 
 module SinglePileNim = struct
   type game_state = int
+  let string_of_game_state = string_of_int
 
   let immediate_result state =
     if state = 0
@@ -66,6 +78,7 @@ end)
 
 module MultiPileNim = struct
   type game_state = int list
+  let string_of_game_state st = st |> List.map string_of_int |> String.concat " "
 
   let immediate_result piles =
     if all (fun n -> n = 0) piles
@@ -95,6 +108,8 @@ end)
 
 module FlagPick = struct
   type game_state = int
+  let string_of_game_state = string_of_int
+
   let immediate_result state =
     if state = 0
     then Some Lose
@@ -127,6 +142,7 @@ module TicTacToe = struct
               cell * cell * cell *
               cell * cell * cell
     }
+  let string_of_game_state _ = "TODO"
 
   let immediate_result { xs_turn ; board = (c11, c12, c13, c21, c22, c23, c31, c32, c33) } =
     let line a b c = a = b && a = c && a <> Empty
@@ -263,10 +279,33 @@ module HareAndHounds = struct
   let cell_list_of_board ((t1, t2, t3, m1, m2, m3, m4, m5, b1, b2, b3) : board) =
     [t1; t2; t3; m1; m2; m3; m4; m5; b1; b2; b3]
 
-  exception BoardOfCellListMalformedException
+  exception CellListMalformedException
   let board_of_cell_list : cell list -> board = function
     | [t1; t2; t3; m1; m2; m3; m4; m5; b1; b2; b3] -> (t1, t2, t3, m1, m2, m3, m4, m5, b1, b2, b3)
-    | _ -> raise BoardOfCellListMalformedException
+    | _ -> raise CellListMalformedException
+
+  let string_of_game_state { board ; _ } =
+    let string_of_cell = function
+      | Empty -> " "
+      | Hare -> "o"
+      | Hound -> ">"
+    in
+    match
+      board
+      |> cell_list_of_board
+      |> List.map string_of_cell
+    with
+    | [t1; t2; t3; m1; m2; m3; m4; m5; b1; b2; b3] ->
+      Printf.sprintf (
+        "
+            %s - %s - %s
+          / | \\ | / | \\
+        %s - %s - %s - %s - %s
+          \\ | / | \\ | /
+            %s - %s - %s
+        "
+      ) t1 t2 t3 m1 m2 m3 m4 m5 b1 b2 b3
+    | _ -> raise CellListMalformedException
 
   let board_nth ((t1, t2, t3, m1, m2, m3, m4, m5, b1, b2, b3) : board) =
     List.nth [t1; t2; t3; m1; m2; m3; m4; m5; b1; b2; b3]

@@ -41,7 +41,7 @@ tests
 $ dune runtest
 ```
 
-main executable (tbd)
+main executable (show a game of [Hare and Hounds](https://en.wikipedia.org/wiki/Hare_games#Hare_and_Hounds))
 
 ```
 $ dune exec bin/main.exe
