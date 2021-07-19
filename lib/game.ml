@@ -249,19 +249,46 @@ module HareAndHounds = struct
   type cell = Empty | Hound | Hare
 
   (* https://upload.wikimedia.org/wikipedia/commons/8/85/Hare_and_Hounds_board.png *)
-  type game_state = { hounds_turn: bool
-                    ; board : cell * cell * cell *
-                              cell * cell * cell * cell * cell *
-                              cell * cell * cell
-                    }
+  type board = cell * cell * cell *
+               cell * cell * cell * cell * cell *
+               cell * cell * cell
 
-  let hare_surrounded _ = false
+  type game_state =
+    { hounds_turn: bool
+    ; board : board
+    }
 
-  let immediate_result state =
-    let { board = (_, _, _, left, _, _, _, _, _, _, _); hounds_turn } = state
-    in if left = Hare
+  let cell_list_of_board ((t1, t2, t3, m1, m2, m3, m4, m5, b1, b2, b3) : board) =
+    [t1; t2; t3; m1; m2; m3; m4; m5; b1; b2; b3]
+
+  let get_hare_index board =
+    board
+    |> cell_list_of_board
+    |> firsti ((=) Hare)
+
+  let get_sorted_hound_indices board =
+    board
+    |> cell_list_of_board
+    |> find_alli ((=) Hound)
+    |> List.sort ((-))
+
+  exception HareNotFoundException
+  let hare_surrounded board =
+    match get_hare_index board with
+    | None -> raise HareNotFoundException
+    | Some hare_idx ->
+      let hound_idxs = get_sorted_hound_indices board
+      (* todo replace with `next_states` logic I bet *)
+      in
+      (hare_idx = 7 && hound_idxs = [2; 6; 10])
+      || (hare_idx = 1 && hound_idxs = [0; 2; 5])
+      || (hare_idx = 9 && hound_idxs = [5; 8; 10])
+
+  let immediate_result { hounds_turn; board } =
+    let hare_reached_goal = get_hare_index board = Some 3
+    in if hare_reached_goal
     then Some (if hounds_turn then Lose else Win)
-    else if hare_surrounded state
+    else if hare_surrounded board
     then Some (if hounds_turn then Win else Lose)
     else None
 
@@ -276,4 +303,25 @@ let%test_module "HareAndHounds" = (module struct
                             Hare, Empty, Empty, Empty, Empty,
                             Empty, Empty, Empty )
                  }
+
+  let%test "A trapped hare loses" =
+    Lose = M.eval { hounds_turn = false
+                  ; board = (Empty, Empty, Hound,
+                             Empty, Empty, Empty, Hound, Hare,
+                             Empty, Empty, Hound )
+                  }
+
+  let%test "A hare trapped on top loses" =
+    Lose = M.eval { hounds_turn = false
+                  ; board = (Hound, Hare, Hound,
+                             Empty, Empty, Hound, Empty, Empty,
+                             Empty, Empty, Empty )
+                  }
+
+  let%test "A hare trapped at the bottom loses" =
+    Lose = M.eval { hounds_turn = false
+                  ; board = (Empty, Empty, Empty,
+                             Empty, Empty, Hound, Empty, Empty,
+                             Hound, Hare, Hound )
+                  }
 end)
