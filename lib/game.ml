@@ -127,7 +127,7 @@ module TicTacToe = struct
               cell * cell * cell
     }
 
-  let immediate_result { xs_turn = xs_turn ; board = (c11, c12, c13, c21, c22, c23, c31, c32, c33) } =
+  let immediate_result { xs_turn ; board = (c11, c12, c13, c21, c22, c23, c31, c32, c33) } =
     let line a b c = a = b && a = c && a <> Empty
     and result_of_turn winning_cell =
       if (xs_turn && winning_cell = X) || (not xs_turn && winning_cell = O)
@@ -155,7 +155,7 @@ module TicTacToe = struct
 
   exception StateException
   (* Depending on whose turn it is, place a mark in every empty square *)
-  let next_states { xs_turn = xs_turn ; board = (c11, c12, c13, c21, c22, c23, c31, c32, c33) } =
+  let next_states { xs_turn ; board = (c11, c12, c13, c21, c22, c23, c31, c32, c33) } =
     let placement = if xs_turn then X else O
     and board_ls = [c11; c12; c13; c21; c22; c23; c31; c32; c33]
     in
@@ -243,4 +243,37 @@ let%test_module _ = (module struct
                  Empty, Empty, Empty,
                  Empty, Empty, Empty)
       }
+end)
+
+module HareAndHounds = struct
+  type cell = Empty | Hound | Hare
+
+  (* https://upload.wikimedia.org/wikipedia/commons/8/85/Hare_and_Hounds_board.png *)
+  type game_state = { hounds_turn: bool
+                    ; board : cell * cell * cell *
+                              cell * cell * cell * cell * cell *
+                              cell * cell * cell
+                    }
+
+  let hare_surrounded _ = false
+
+  let immediate_result state =
+    let { board = (_, _, _, left, _, _, _, _, _, _, _); hounds_turn } = state
+    in if left = Hare
+    then Some (if hounds_turn then Lose else Win)
+    else if hare_surrounded state
+    then Some (if hounds_turn then Win else Lose)
+    else None
+
+  let next_states _ = []
+end
+
+let%test_module "HareAndHounds" = (module struct
+  module M = CombinatorialGameEvaluator(HareAndHounds)
+  let%test "Hare wins if it gets to the left" =
+    Win = M.eval { hounds_turn = false
+                 ; board = (Empty, Empty, Empty,
+                            Hare, Empty, Empty, Empty, Empty,
+                            Empty, Empty, Empty )
+                 }
 end)
